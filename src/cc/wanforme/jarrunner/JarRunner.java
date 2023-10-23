@@ -22,7 +22,7 @@ import java.util.Objects;
  * java -jar JarRunner.jar start mycus.jar -Xms215m -Xmx1024m {#}
  * java -jar JarRunner.jar start mycus.jar {#} -Dlogging.file=./out.log --server.port=8308
  * java -jar JarRunner.jar start mycus.jar -Xms215m -Xmx1024m {#} -Dlogging.file=./out.log --server.port=8308
- * java -jar JarRunner.jar stop  [-f]
+ * java -jar JarRunner.jar stop  mycus.jar [-f]
  *
  * java -jar JarRunner.jar restart mycus.jar -Xms215m -Xmx1024m {#} -Dlogging.file=./out.log --server.port=8308
  *
@@ -93,7 +93,7 @@ public class JarRunner {
     private static void usage() {
         String s = "java -jar JarRunner.jar start|restart xxx.jar \r\n"
                 + "java -jar JarRunner.jar start|restart [jvm args] {#} [app args] \r\n"
-                + "java -jar JarRunner.jar stop [-f] \r\n\r\n"
+                + "java -jar JarRunner.jar stop xxx.jar [-f] \r\n\r\n"
                 + "example: java -jar JarRunner.jar start xxx.jar -Xmx 215m -Xms 1024m {#} -Dlogging.file=./out.log --server.port=8080";
         System.out.println(s);
     }
@@ -128,7 +128,7 @@ public class JarRunner {
                     System.out.println("Force kill");
                     killApp(true);
                 } else {
-                    System.out.println("FAILED! Trying to run 'stop -f' with permission.");
+                    System.out.println("FAILED! Trying to run 'stop xxx.jar -f' with permission.");
                 }
             }
         } else if ("restart".equals(this.type)) {

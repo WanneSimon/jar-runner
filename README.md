@@ -28,10 +28,10 @@ java -jar JarRunner.jar start mycus.jar -Xms215m -Xmx1024m {#} -Dlogging.file=./
 ### stop
 （windows如遇stop不能正常工作，请用管理员身份执行）
 ```
-java -jar JarRunner.jar stop 
+java -jar JarRunner.jar stop mycus.jar
 
 # with force
-java -jar JarRunner.jar stop -f 
+java -jar JarRunner.jar stop mycus.jar -f 
 ```
 
 ### restart
