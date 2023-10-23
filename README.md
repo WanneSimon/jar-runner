@@ -42,7 +42,7 @@ java -jar JarRunner.jar restart ....
 ### bat
 使用脚本简化， 创建 `run.bat`，内容如下
 ```bat
-:::@echo off
+@echo off
 echo "usage: run.bat start|stop|restart"
 
 ::: jar file
@@ -53,13 +53,12 @@ set JVM_ARGS=-Xms215m
 set PROGRAM_ARGS=-Dlogging.file=logs/out.log --server.port=8308 --spring.profiles.active=dev
 
 set START_ARGS=java -jar JarRunner.jar %1 %APP%
-
 ::: set START_ARGS=java -jar JarRunner.jar %1 %APP% %JVM_ARGS% {#} %PROGRAM_ARGS%
-if %1 == "start" (
+if "%1" == "start" (
   goto appendArgs
-) else if %1 == "restart" (
+) else if "%1" == "restart" (
   goto appendArgs
-) else if %1 == "stop" (
+) else if "%1" == "stop" (
   if exist "%2"!="" (
     set START_ARGS=%START_ARGS% %2
   )
