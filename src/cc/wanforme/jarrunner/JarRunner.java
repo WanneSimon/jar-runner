@@ -22,6 +22,10 @@ import java.util.Objects;
  * java -jar JarRunner.jar start mycus.jar -Xms215m -Xmx1024m {#}
  * java -jar JarRunner.jar start mycus.jar {#} -Dlogging.file=./out.log --server.port=8308
  * java -jar JarRunner.jar start mycus.jar -Xms215m -Xmx1024m {#} -Dlogging.file=./out.log --server.port=8308
+ * java -jar JarRunner.jar stop  [-f]
+ *
+ * java -jar JarRunner.jar restart mycus.jar -Xms215m -Xmx1024m {#} -Dlogging.file=./out.log --server.port=8308
+ *
  * 38704 finemi_framework_2-0.0.1-SNAPSHOT.jar
  * 50240 sun.tools.jps.Jps
  */
@@ -60,8 +64,15 @@ public class JarRunner {
     public JarRunner(String type, String app, String[] launchArgs) {
        this.type = type;
        this.originApp = app;
+
        // 换成全路径，防止出现相同名字，导致冲突
-       this.app = new File(app).getAbsolutePath();
+       File appFile = new File(app);
+       this.app = appFile.getAbsolutePath();
+       if(!appFile.exists()) {
+           System.out.println("App file does not existed! " + this.app);
+           System.exit(1);
+       }
+
        this.launchArgs = launchArgs;
        this.pidLoc = new File(this.app + ".pid");
     }
@@ -80,8 +91,10 @@ public class JarRunner {
     }
 
     private static void usage() {
-        String s = "java -jar JarRunner start|stop|restart xxx.jar [launch args]\r\n"
-                + "example: java -jar JarRunner start xxx.jar -Xmx 215m -Xms 1024m -Dserver.port=8103";
+        String s = "java -jar JarRunner.jar start|restart xxx.jar \r\n"
+                + "java -jar JarRunner.jar start|restart [jvm args] {#} [app args] \r\n"
+                + "java -jar JarRunner.jar stop [-f] \r\n\r\n"
+                + "example: java -jar JarRunner.jar start xxx.jar -Xmx 215m -Xms 1024m {#} -Dlogging.file=./out.log --server.port=8080";
         System.out.println(s);
     }
 
@@ -89,11 +102,17 @@ public class JarRunner {
         if ("start".equals(this.type)) {
             // 启动
             if(isRunning()) {
-                System.out.println(originApp+" is running at pid [" + loadPid() +"]");
+                System.out.println("["+originApp+"] is running at pid [" + loadPid() +"]");
                 return;
             }
 
             startApp();
+
+            delay(1000);
+            if(isRunning()) {
+                System.out.println("["+originApp+"] is running. [" + loadPid() +"]");
+                return;
+            }
         } else if ("stop".equals(this.type)) {
             // 检查是否在运行
             if(!isRunning()) {
@@ -102,9 +121,15 @@ public class JarRunner {
             }
             killApp(false);
 
+            delay(1000);
             if(isRunning()) {
-                System.out.println("force kill");
-                killApp(true);
+                delay(2000);
+                if(isRunning() && isForceStop()) {
+                    System.out.println("Force kill");
+                    killApp(true);
+                } else {
+                    System.out.println("FAILED! Trying to run 'stop -f' with permission.");
+                }
             }
         } else if ("restart".equals(this.type)) {
             // 检查是否在运行
@@ -150,6 +175,10 @@ public class JarRunner {
             throw new RuntimeException("Error on querying process!");
         }
     }
+    // 是否使用强制停止
+    private boolean isForceStop() {
+        return launchArgs != null && launchArgs.length > 0 && "-f".equals(launchArgs[0]);
+    }
     // 启动进程
     protected void startApp() throws IOException {
         List<String> jvmArgs = new ArrayList<>();
@@ -176,7 +205,7 @@ public class JarRunner {
         execArgs.addAll(programArgs);
 
         ProcessBuilder builder = new ProcessBuilder(execArgs.toArray(new String[0]));
-        System.out.println("exec: " + String.join(" ", builder.command()));
+        System.out.println("[exec] " + String.join(" ", builder.command()));
         builder.start();
 
         savePid();
@@ -207,7 +236,7 @@ public class JarRunner {
             throw new RuntimeException("unknown OS type!");
         }
 
-        System.out.println("exec: " + String.join(" ", builder.command()));
+        System.out.println("[exec] " + String.join(" ", builder.command()));
         Process process = builder.start();
         int re = 0;
 
@@ -220,7 +249,7 @@ public class JarRunner {
 
         System.out.println("stop status: " + re);
         if(re == 0) {
-            System.out.println( originApp + " had been stopped!");
+            System.out.println( "["+originApp + "] has been stopped!");
         }
     }
 
@@ -275,5 +304,13 @@ public class JarRunner {
             parent.mkdirs();
         }
         Files.write(pidLoc.toPath(), pid.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private void delay(int ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
