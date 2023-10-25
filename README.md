@@ -76,7 +76,6 @@ echo %START_ARGS%
 
 ::: start %START_ARGS%
 %START_ARGS%
-PAUSE
 ```
 使用方式（如遇stop不能正常工作，请用管理员身份执行）：
 ```
@@ -84,3 +83,6 @@ run.bat "start"|"restart"
 run.bat stop [-f]
 ```
 
+### 警告
+jps 找不到 windows 服务启动的 jar 程序！
+但可以通过 `java -jar JarRunner stop xxx.jar -f` 停止程序。

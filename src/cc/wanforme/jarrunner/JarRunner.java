@@ -43,6 +43,8 @@ public class JarRunner {
 
     public static void main(String[] args) throws IOException {
         //System.out.println("args: " + Arrays.toString(args));
+//        String whereJava = System.getProperty("java.home");//getProcessOutput(new ProcessBuilder("where", "java").start().getInputStream());
+//        System.out.println("java.home: " + whereJava);
         // 参数检查
         if(!check(args)) {
             return;
@@ -116,15 +118,16 @@ public class JarRunner {
         } else if ("stop".equals(this.type)) {
             // 检查是否在运行
             if(!isRunning()) {
-                System.out.println("["+originApp+"] is not running!");
-                return;
+                if(!isForceStop()) {
+                    System.out.println("["+originApp+"] is not running!");
+                    return;
+                }
             }
-            killApp(false);
+            int re = killApp(false);
 
-            delay(1000);
-            if(isRunning()) {
-                delay(2000);
-                if(isRunning() && isForceStop()) {
+            if(re == 1) {
+                //delay(2000);
+                if(isForceStop()) {
                     System.out.println("Force kill");
                     killApp(true);
                 } else {
@@ -144,7 +147,9 @@ public class JarRunner {
         }
 
     }
-    // 检查是否在运行中
+    /** 检查是否在运行中，
+     * 注：jps是通过读取临时文件中pid来确定有哪些进程的，
+     * 如果启动程序时，无法将pid写入临时文件， jps就看不到此进程  */
     private boolean isRunning() throws IOException {
         String pid = loadPid();
         if(pid == null || pid.trim() == "") { // 文件不存在或内容为空
@@ -152,7 +157,8 @@ public class JarRunner {
         }
 
         // 检查 pid 是否真的在运行
-        Process jps = Runtime.getRuntime().exec("jps");
+//        Process jps = Runtime.getRuntime().exec(javaCmd("jps"));
+        Process jps = new ProcessBuilder(javaCmd("jps")).start();
         String processOutput = getProcessOutput(jps.getInputStream());
 
         int re;
@@ -196,9 +202,8 @@ public class JarRunner {
             }
         }
 
-
         List<String> execArgs = new ArrayList<>();
-        execArgs.add("java");
+        execArgs.add(javaCmd("java"));
         execArgs.addAll(jvmArgs);
         execArgs.add("-jar");
         execArgs.add(app);
@@ -210,8 +215,8 @@ public class JarRunner {
 
         savePid();
     }
-    // 杀死进程
-    protected void killApp(boolean force) throws IOException {
+    // 杀死进程, 返回执行结果， 0 或 1
+    protected int killApp(boolean force) throws IOException {
         String pid = loadPid();
         String os = System.getProperty("os.name").toLowerCase();
         ProcessBuilder builder = null;
@@ -251,10 +256,12 @@ public class JarRunner {
         if(re == 0) {
             System.out.println( "["+originApp + "] has been stopped!");
         }
+
+        return re;
     }
 
     // 获取执行结果
-    private String getProcessOutput(InputStream processOutput) throws IOException {
+    protected static String getProcessOutput(InputStream processOutput) throws IOException {
         // 读取命令执行结果
         BufferedReader reader = new BufferedReader(new InputStreamReader(processOutput));
         String line;
@@ -284,11 +291,12 @@ public class JarRunner {
     }
     // 保存pid
     private void savePid() throws IOException {
-        ProcessBuilder builder = new ProcessBuilder("jps", "-l");
+        ProcessBuilder builder = new ProcessBuilder(javaCmd("jps"), "-l");
         Process process = builder.start();
 
         // 筛选 app 的pid
         String allOut = getProcessOutput(process.getInputStream());
+//        System.out.println("====jps -l====" + allOut);
         String[] lines = spliteStr(allOut);
         String pid = ""; // 如果没有找到，就覆盖空文件
         for(String l : lines) {
@@ -313,4 +321,9 @@ public class JarRunner {
             throw new RuntimeException(e);
         }
     }
+
+    private static String javaCmd(String cmd) {
+        return cmd;
+    }
+
 }
